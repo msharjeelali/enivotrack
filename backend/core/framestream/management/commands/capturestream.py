@@ -1,9 +1,15 @@
+import os
 import cv2 
 import numpy as np 
+from dotenv import load_dotenv
 from kafka import KafkaConsumer
 from django.core.management.base import BaseCommand, CommandError
 
-TOPIC = "test-topic"
+load_dotenv()
+
+KAFKA_IP = os.getenv('KAFKA_HOST_IP')
+KAFKA_PORT = os.getenv('KAFKA_PORT')
+TOPIC = os.getenv('KAFKA_TOPIC')
 
 class Command(BaseCommand):
     
@@ -13,7 +19,7 @@ class Command(BaseCommand):
         try: 
             consumer = KafkaConsumer( 
                 TOPIC, 
-                bootstrap_servers=['localhost:9092'], 
+                bootstrap_servers=[f"{KAFKA_IP}:{KAFKA_PORT}"], 
                 auto_offset_reset='latest',  # Start from the NEWEST frame
                 enable_auto_commit=True, 
                 group_id='video-consumer'

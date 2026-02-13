@@ -3,13 +3,17 @@ import sys
 import time
 from kafka import KafkaProducer
 
-TOPIC = "test-topic"
+load_dotenv()
+
+KAFKA_IP = os.getenv('KAFKA_HOST_IP')
+KAFKA_PORT = os.getenv('KAFKA_PORT')
+TOPIC = os.getenv('KAFKA_TOPIC')
 
 def publish_camera():
 
     try:
         producer = KafkaProducer(
-            bootstrap_servers=['localhost:9092'],
+            bootstrap_servers=[f"{KAFKA_IP}:{KAFKA_PORT}"],
             api_version=(3, 7, 0),
             linger_ms=10
             )
