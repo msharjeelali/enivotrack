@@ -1,9 +1,9 @@
 FROM python:3.13
-WORKDIR usr/local/app
+WORKDIR /app
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-copy src ./src
+COPY src ./src
 
-CMD ["python", "source.py"]
+CMD ["python", "src/source.py"]
