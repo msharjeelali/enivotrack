@@ -4,6 +4,8 @@ services:
     container_name: kafka
     ports:
       - "${KAFKA_PORT}:9092"
+    volumes:
+      - ./kafka_data:/var/lib/kafka/data
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: 'broker,controller'
@@ -16,6 +18,7 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
 
     healthcheck: 
@@ -23,12 +26,4 @@ services:
       interval: 30s 
       timeout: 10s 
       retries: 3
-  # vis:
-  #   build:
-  #     context: ./vis
-  #     dockerfile: DockerFile
-  #   container_name: vis
-  #   volumes:
-  #     - ./vis/src:/app/src
-  #   working_dir: /app
 
