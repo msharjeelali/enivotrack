@@ -40,7 +40,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'users',
-    'framestream'
+    'cameras',
+    'framestream',
+    'shared',
 ]
 
 MIDDLEWARE = [
