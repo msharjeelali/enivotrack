@@ -15,18 +15,16 @@ class NumpyArray:
 
     @classmethod
     def validate(cls, value: Any) -> np.ndarray:
-        
         if isinstance(value, np.ndarray):
             return value
-        
+
+        # kept for testing/direct instantiation outside HTTP context
         if isinstance(value, list):
-        
             try:
                 return np.array(value, dtype=np.uint8)
-        
             except (ValueError, TypeError) as e:
                 raise ValueError(f"List could not be converted to uint8 array: {e}")
-        
+
         raise ValueError(f"Expected np.ndarray or list, got {type(value).__name__}")
 
 
@@ -39,7 +37,6 @@ class PredictionRequest(BaseModel):
     @field_validator("frame_data", mode="after")
     @classmethod
     def validate_frame_data(cls, value: np.ndarray) -> np.ndarray:
-        
         if value.ndim not in (2, 3):
             raise ValueError("frame_data must be a 2D or 3D array")
 
@@ -63,11 +60,19 @@ class BoundingBox(BaseModel):
     y2: float
 
 
+class PlateDetection(BaseModel):
+    bbox: BoundingBox
+    plate_text: str | None = None
+    confidence: float = Field(..., ge=0.0, le=1.0)
+
+
 class Detection(BaseModel):
     bbox: BoundingBox
     confidence: float = Field(..., ge=0.0, le=1.0)
     smoke: bool
     intensity: float = Field(..., ge=0.0, le=1.0)
+    track_id: int | None = None
+    plate: PlateDetection | None = None
 
 
 class PredictionResponse(BaseModel):
@@ -76,21 +81,20 @@ class PredictionResponse(BaseModel):
 
 
 def calculate_intensity(frame: np.ndarray, box) -> float:
-    
     x1, y1, x2, y2 = box.xyxy[0].tolist()
     smoke_region = frame[int(y1) : int(y2), int(x1) : int(x2)]
-    
+
     if smoke_region.size == 0:
         return 0.0
-    
+
     gray = cv2.cvtColor(smoke_region, cv2.COLOR_BGR2GRAY)
-    gray = cv2.cvtColor(smoke_region, cv2.COLOR_BGR2GRAY)
-    intensity = gray.mean() / 255
-    return intensity
+    return float(gray.mean() / 255)  # ✅ explicit float cast
 
 
 def yolo_to_prediction_response(frame: np.ndarray, result) -> list[Detection]:
-    
+    if result.boxes is None or len(result.boxes) == 0:
+        return []
+
     detections = []
 
     for box in result.boxes:
@@ -99,7 +103,10 @@ def yolo_to_prediction_response(frame: np.ndarray, result) -> list[Detection]:
         class_id = int(box.cls[0])
         class_name = result.names[class_id]
         smoke = class_name.lower() == "smoke"
-        intensity = calculate_intensity(frame, box)
+        intensity = (
+            calculate_intensity(frame, box) if smoke else 0.0
+        )  # ✅ only for smoke
+        track_id = int(box.id[0]) if box.id is not None else None
 
         detections.append(
             Detection(
@@ -107,6 +114,7 @@ def yolo_to_prediction_response(frame: np.ndarray, result) -> list[Detection]:
                 confidence=confidence,
                 smoke=smoke,
                 intensity=intensity,
+                track_id=track_id,
             )
         )
 
