@@ -1,13 +1,16 @@
+#!/bin/bash
+set -e
+
 case "$1" in
     dev-setup)
         python3.10 -m venv .venv
-        source .venv/bin/activate
-        pip install -r requirements-dev.txt
+        .venv/bin/pip install -r requirements-dev.txt
+        echo "Setup complete. Run: source .venv/bin/activate"
         ;;
     setup)
         python3.10 -m venv .venv
-        source .venv/bin/activate
-        pip install -r requirements.txt
+        .venv/bin/pip install -r requirements.txt
+        echo "Setup complete. Run: source .venv/bin/activate"
         ;;
     run)
         uvicorn app.main:app --reload
@@ -22,9 +25,23 @@ case "$1" in
         ruff check --fix app/ tests/
         ruff format app/ tests/
         ;;
+    docker-build)
+        docker compose build
+        ;;
+    docker-run)
+        docker compose up
+        ;;
+    docker-run-detached)
+        docker compose up -d
+        ;;
+    docker-stop)
+        docker compose down
+        ;;
+    docker-logs)
+        docker compose logs -f
+        ;;
     *)
-        echo "Usage: ./doit.sh {run|test|lint|lint-fix}"
+        echo "Usage: ./doit.sh {dev-setup|setup|run|test|lint|lint-fix|docker-build|docker-run|docker-run-detached|docker-stop|docker-logs}"
         exit 1
         ;;
 esac
-    
