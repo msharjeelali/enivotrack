@@ -13,6 +13,7 @@ urlpatterns = [
 
     # v1
     path("api/<version>/users/", include("users.urls")),
+    path("api/<version>/cameras/", include("cameras.urls")),
 
     # docs
     path("schema/", SpectacularAPIView.as_view(permission_classes=[AllowAny]), name="schema"),
