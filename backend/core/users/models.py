@@ -3,12 +3,12 @@ import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-# Create your models here.
+
 class User(AbstractUser):
 
     class Role(models.TextChoices):
         ADMIN = "ADMIN", "Admin"
-        USER = "OPERATOR", "Operator"
+        OPERATOR = "OPERATOR", "Operator"
 
     email = models.EmailField(unique=True)
     id = models.UUIDField(
@@ -17,17 +17,21 @@ class User(AbstractUser):
         editable=False
     )
     role = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=Role.choices,
-        default=Role.ADMIN
+        default=Role.OPERATOR
     )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 
+    def __str__(self) -> str:
+        return self.email
+
     class Meta:
+        db_table = "users"
         permissions = [
             ("is_admin", "General Administrative Access"),
-            ("can_add_user", "Can add new user (Admin / Operator)")
         ]
+
 

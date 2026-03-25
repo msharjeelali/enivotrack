@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'cameras',
     'framestream',
     'shared',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -125,7 +126,16 @@ STATIC_URL = 'static/'
 AUTH_USER_MODEL = 'users.User'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-    ],
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
+    "DEFAULT_VERSION": "v1",
+    "ALLOWED_VERSIONS": ["v1"],
+    "VERSION_PARAM": "version",
+    'EXCEPTION_HANDLER': 'shared.exceptions.custom_exception_handler',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Envirotrack Core API",
+    "DESCRIPTION": "API for Envirotrack backend",
+    "VERSION": "1.0.0",
 }
