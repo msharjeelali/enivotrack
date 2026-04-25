@@ -48,6 +48,10 @@ SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "")
 # Token validity for password reset/invite (seconds). Django uses this with PasswordResetTokenGenerator.
 PASSWORD_RESET_TIMEOUT = int(os.getenv("PASSWORD_RESET_TIMEOUT", str(60 * 60 * 24)))
 
+# Redis (used by cameras event publishing)
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+
 
 # Application definition
 
@@ -174,45 +178,13 @@ if not AI_SERVICE_URL:
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-
-    "formatters": {
-        "verbose": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        },
-        "simple": {
-            "format": "%(levelname)s - %(message)s"
-        },
-    },
-
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-        "file": {
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/app.log"),
-            "maxBytes": 10 * 1024 * 1024,  # 10MB
-            "backupCount": 5,
-            "formatter": "verbose",
         },
     },
-
     "root": {
-        "handlers": ["console", "file"],
-        "level": os.getenv("LOG_LEVEL", "INFO"),
-    },
-
-    "loggers": {
-        "django": {
-            "handlers": ["console", "file"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "django.request": {
-            "handlers": ["console", "file"],
-            "level": "WARNING",
-            "propagate": False,
-        },
+        "handlers": ["console"],
+        "level": "INFO",
     },
 }
