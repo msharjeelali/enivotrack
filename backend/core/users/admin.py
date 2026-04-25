@@ -8,12 +8,13 @@ class UserModelAdmin(UserAdmin):
     model = User
     list_display = ("email", "username", "role", "is_active", "is_staff")
     list_filter = ("role", "is_active", "is_staff")
-    search_fields = ("email", "username")
+    search_fields = ("email", "name")
     fieldsets = UserAdmin.fieldsets + (
+        ("Profile", {"fields": ("name",)}),
         ("Access Control", {"fields": ("role",)}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        (None, {"fields": ("role",)}),
+        (None, {"fields": ("name", "role")}),
     )
 
 

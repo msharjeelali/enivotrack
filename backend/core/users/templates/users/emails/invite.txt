@@ -1,0 +1,12 @@
+Hi {{ user.name|default:"there" }},
+
+You’ve been invited to Envirotrack.
+
+To activate your account and set your password, open this link:
+{{ set_password_link }}
+
+If you weren’t expecting this invite, you can ignore this email.
+{% if support_email %}
+Need help? Contact {{ support_email }}.
+{% endif %}
+

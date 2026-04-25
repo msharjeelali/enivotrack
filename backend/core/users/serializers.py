@@ -1,6 +1,6 @@
+from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import IntegrityError
 from rest_framework import serializers
 
 from .models import User
@@ -9,43 +9,33 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "email", "username", "role", "is_active", "date_joined")
+        fields = ("id", "email", "name", "role", "is_active", "date_joined")
         read_only_fields = ("id", "date_joined")
 
 
-class CreateUserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
-
-    class Meta:
-        model = User
-        fields = ("id", "email", "username", "password", "role")
-        read_only_fields = ("id",)
+class AdminInviteUserSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    name = serializers.CharField(max_length=255)
+    role = serializers.ChoiceField(choices=User.Role.choices, required=False)
 
     def validate_email(self, value):
+        value = value.strip().lower()
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
-        return value.lower()
-
-    def validate_password(self, value):
-        try:
-            validate_password(value)
-        except DjangoValidationError as e:
-            raise serializers.ValidationError(list(e.messages))
         return value
 
-    def create(self, validated_data):
-        try:
-            return User.objects.create_user(**validated_data)
-        except IntegrityError:
-            raise serializers.ValidationError(
-                {"email": "A user with this email already exists."}
-            )
+
+class ResendInviteSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.strip().lower()
 
 
 class UpdateUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("email", "username", "role", "is_active")
+        fields = ("email", "name", "role", "is_active")
 
     def validate_email(self, value):
         user = self.instance
@@ -77,4 +67,60 @@ class ChangePasswordSerializer(serializers.Serializer):
         except DjangoValidationError as e:
             raise serializers.ValidationError(list(e.messages))
         return value
+
+
+class SetPasswordSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    name = serializers.CharField(max_length=255)
+    password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_password(self, value):
+        # User may be inactive here, but validators still apply.
+        try:
+            validate_password(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_new_password(self, value):
+        try:
+            validate_password(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        email = attrs.get("email", "").strip().lower()
+        password = attrs.get("password")
+        user = authenticate(
+            request=self.context.get("request"),
+            email=email,
+            password=password,
+        )
+        if not user:
+            raise serializers.ValidationError("Invalid credentials.")
+        if not user.is_active:
+            # Do not leak whether the email exists or the account state.
+            raise serializers.ValidationError("Invalid credentials.")
+        attrs["user"] = user
+        return attrs
 
