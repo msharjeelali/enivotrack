@@ -69,7 +69,6 @@ INSTALLED_APPS = [
     'framestream',
     'shared',
     'drf_spectacular',
-    'events'
 ]
 
 MIDDLEWARE = [
