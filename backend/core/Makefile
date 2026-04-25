@@ -1,5 +1,5 @@
 run:
-	python manage.py runserver 9000
+	python manage.py runserver 0.0.0.0:8002
 
 migrate:
 	python manage.py makemigrations
