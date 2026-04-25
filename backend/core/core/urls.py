@@ -7,9 +7,13 @@ from drf_spectacular.views import (
     SpectacularRedocView,
 )
 from rest_framework.permissions import AllowAny
+from .views import HealthView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+
+    # health
+    path("health/", HealthView.as_view(), name="health"),
 
     # v1
     path("api/<version>/users/", include("users.urls")),
