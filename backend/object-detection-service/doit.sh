@@ -1,4 +1,3 @@
-#!/bin/bash
 set -e
 
 case "$1" in
@@ -13,7 +12,8 @@ case "$1" in
         echo "Setup complete. Run: source .venv/bin/activate"
         ;;
     run)
-        uvicorn app.main:app --reload
+        source .venv/bin/activate
+        uvicorn app.main:app --reload --host 0.0.0.0 --port 8001     
         ;;
     test)
         pytest tests/ -v

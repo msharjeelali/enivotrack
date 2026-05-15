@@ -40,6 +40,7 @@ db.upload
 # Ignore local data persistence for Kafka/Zookeeper if you mapped volumes
 /data/
 /kafka_data/
+/redis_data/
 
 # --- IDEs ---
 .vscode/

@@ -1,6 +1,7 @@
-from faker import Faker
-from shared.models import Vehicle, Owner
 from django.core.management.base import BaseCommand
+from faker import Faker
+
+from shared.models import Owner, Vehicle
 
 emails = [
     "l226721@lhr.nu.edu.pk",

@@ -66,18 +66,26 @@ class PlateDetection(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
 
 
-class Detection(BaseModel):
+class SmokeDetection(BaseModel):
     bbox: BoundingBox
     confidence: float = Field(..., ge=0.0, le=1.0)
-    smoke: bool
     intensity: float = Field(..., ge=0.0, le=1.0)
+    track_id: int | None = None
+    vehicle: "VehicleDetection | None" = None
+
+
+class VehicleDetection(BaseModel):
+    bbox: BoundingBox
+    confidence: float = Field(..., ge=0.0, le=1.0)
     track_id: int | None = None
     plate: PlateDetection | None = None
 
 
+SmokeDetection.model_rebuild()
+
 class PredictionResponse(BaseModel):
     frame_id: UUID
-    predictions: list[Detection]
+    predictions: list[SmokeDetection] 
 
 
 def calculate_intensity(frame: np.ndarray, box) -> float:
@@ -91,31 +99,41 @@ def calculate_intensity(frame: np.ndarray, box) -> float:
     return float(gray.mean() / 255)  # ✅ explicit float cast
 
 
-def yolo_to_prediction_response(frame: np.ndarray, result) -> list[Detection]:
+def yolo_to_smoke_detections(frame: np.ndarray, result) -> list[SmokeDetection]:
     if result.boxes is None or len(result.boxes) == 0:
         return []
 
     detections = []
-
     for box in result.boxes:
         x1, y1, x2, y2 = box.xyxy[0].tolist()
         confidence = float(box.conf[0])
-        class_id = int(box.cls[0])
-        class_name = result.names[class_id]
-        smoke = class_name.lower() == "smoke"
-        intensity = (
-            calculate_intensity(frame, box) if smoke else 0.0
-        )  # ✅ only for smoke
+        track_id = int(box.id[0]) if box.id is not None else None
+        intensity = calculate_intensity(frame, box)
+
+        detections.append(SmokeDetection(
+            bbox=BoundingBox(x1=x1, y1=y1, x2=x2, y2=y2),
+            confidence=confidence,
+            intensity=intensity,
+            track_id=track_id,
+        ))
+
+    return detections
+
+
+def yolo_to_vehicle_detections(result) -> list[VehicleDetection]:
+    if result.boxes is None or len(result.boxes) == 0:
+        return []
+
+    detections = []
+    for box in result.boxes:
+        x1, y1, x2, y2 = box.xyxy[0].tolist()
+        confidence = float(box.conf[0])
         track_id = int(box.id[0]) if box.id is not None else None
 
-        detections.append(
-            Detection(
-                bbox=BoundingBox(x1=x1, y1=y1, x2=x2, y2=y2),
-                confidence=confidence,
-                smoke=smoke,
-                intensity=intensity,
-                track_id=track_id,
-            )
-        )
+        detections.append(VehicleDetection(
+            bbox=BoundingBox(x1=x1, y1=y1, x2=x2, y2=y2),
+            confidence=confidence,
+            track_id=track_id,
+        ))
 
     return detections

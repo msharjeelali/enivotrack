@@ -11,14 +11,15 @@ from app.config import (
     ROBOFLOW_API_KEY,
     PROJECT_VERSION,
     PLATE_DETECTION_PROJECT,
-    SMOKE_DETECTION_ENABLED,
 )
 from app.models.prediction import (
-    yolo_to_prediction_response,
-    PredictionRequest,
-    Detection,
+    SmokeDetection,
+    VehicleDetection,
     PlateDetection,
     BoundingBox,
+    PredictionRequest,
+    yolo_to_smoke_detections,
+    yolo_to_vehicle_detections,
 )
 
 logger = AppLogger.get_logger(__name__)
@@ -94,31 +95,72 @@ class ModelManager:
             logger.error(f"Plate detection failed: {e}", exc_info=True)
             return None
 
-    def predict(self, request: PredictionRequest) -> list[Detection]:
+    def _link_vehicle_to_smoke(  # ✅ inside class
+        self,
+        smoke_detections: list[SmokeDetection],
+        vehicle_detections: list[VehicleDetection],
+    ) -> None:
+        for vehicle in vehicle_detections:
+            vx1, vy1, vx2, vy2 = (
+                vehicle.bbox.x1, vehicle.bbox.y1,
+                vehicle.bbox.x2, vehicle.bbox.y2,
+            )
+            best_smoke = None
+            best_overlap = 0
+
+            for smoke in smoke_detections:
+                sx1, sy1, sx2, sy2 = (
+                    smoke.bbox.x1, smoke.bbox.y1,
+                    smoke.bbox.x2, smoke.bbox.y2,
+                )
+                ix1 = max(vx1, sx1)
+                iy1 = max(vy1, sy1)
+                ix2 = min(vx2, sx2)
+                iy2 = min(vy2, sy2)
+
+                if ix2 > ix1 and iy2 > iy1:
+                    overlap = (ix2 - ix1) * (iy2 - iy1)
+                    if overlap > best_overlap:
+                        best_overlap = overlap
+                        best_smoke = smoke
+
+            if best_smoke:
+                best_smoke.vehicle = vehicle
+
+    def predict(self, request: PredictionRequest) -> list[SmokeDetection]:  # ✅ inside class
         if not self.check_health():
             raise RuntimeError("Models not loaded")
 
         frame = request.frame_data
 
-        if SMOKE_DETECTION_ENABLED:
-            smoke_results = self.smoke_model.track(
-                frame, tracker="bytetrack.yaml", persist=True
-            )
-            smoke_detections = yolo_to_prediction_response(frame, smoke_results[0])
-            logger.info(f"Smoke detections for {request.frame_id}: {smoke_detections}")
+        smoke_results = self.smoke_model.track(
+            frame, tracker="bytetrack.yaml", persist=True
+        )
+        smoke_detections = yolo_to_smoke_detections(frame, smoke_results[0])
+
+        if not smoke_detections:
+            logger.info(f"No smoke detected for frame {request.frame_id}")
+            return []
+
+        logger.info(f"{len(smoke_detections)} smoke detection(s) for {request.frame_id}")
 
         vehicle_results = self.vehicle_model.track(
             frame, tracker="bytetrack.yaml", persist=True
         )
-        detections = yolo_to_prediction_response(frame, vehicle_results[0])
+        vehicle_detections = yolo_to_vehicle_detections(vehicle_results[0])
 
-        for detection, box in zip(detections, vehicle_results[0].boxes):
-            x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].tolist()]
+        for vehicle in vehicle_detections:
+            x1, y1, x2, y2 = (
+                int(vehicle.bbox.x1), int(vehicle.bbox.y1),
+                int(vehicle.bbox.x2), int(vehicle.bbox.y2),
+            )
             vehicle_crop = frame[y1:y2, x1:x2]
-            detection.plate = self._detect_plate(vehicle_crop)
+            vehicle.plate = self._detect_plate(vehicle_crop)
 
-        logger.info(f"Vehicle detections for {request.frame_id}: {detections}")
-        return detections
+        self._link_vehicle_to_smoke(smoke_detections, vehicle_detections)
+
+        logger.info(f"Vehicle detections for {request.frame_id}: {vehicle_detections}")
+        return smoke_detections
 
 
 model_manager = ModelManager()

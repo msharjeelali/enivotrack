@@ -19,12 +19,10 @@ PLATE_DETECTION_PROJECT = os.getenv(
 )
 PROJECT_VERSION = int(os.getenv("PROJECT_VERSION", 11))
 
-SMOKE_MODEL_PATH = MODELS_DIR / "yolov8l.pt"
-VEHICLE_MODEL_PATH = MODELS_DIR / "vehicle_smart.pt"
+SMOKE_MODEL_PATH = MODELS_DIR / "smoke_model.pt"
+VEHICLE_MODEL_PATH = MODELS_DIR / "yolov8m.pt"
 
-SMOKE_DETECTION_ENABLED = (
-    os.getenv("SMOKE_DETECTION_ENABLED", "false").lower() == "true"
-)
+SMOKE_DETECTION_ENABLED = os.getenv("SMOKE_DETECTION_ENABLED", "false").lower()
 
 API_KEY = os.getenv("API_KEY")
 if not API_KEY:

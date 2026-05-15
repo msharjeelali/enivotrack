@@ -2,12 +2,13 @@ import uuid
 
 from django.db import models
 
+
 # Create your models here.
 class Owner(models.Model):
-    
+
     id = models.UUIDField(
-        primary_key=True, 
-        default=uuid.uuid4, 
+        primary_key=True,
+        default=uuid.uuid4,
         editable=False
         )
     name = models.CharField(
@@ -16,10 +17,10 @@ class Owner(models.Model):
     email = models.EmailField(
         unique=True
         )
-    
+
     def __str__(self):
         return f"Owner: {self.name}, Email: {self.email}"
-    
+
 class Vehicle(models.Model):
 
     BODY_TYPE_CHOICES = [
@@ -35,12 +36,12 @@ class Vehicle(models.Model):
     ]
 
     id = models.UUIDField(
-        primary_key=True, 
-        default=uuid.uuid4, 
+        primary_key=True,
+        default=uuid.uuid4,
         editable=False
         )
     plate = models.CharField(
-        max_length=10, 
+        max_length=10,
         unique=True
         )
     year = models.IntegerField()
@@ -59,14 +60,11 @@ class Vehicle(models.Model):
         auto_now_add=True
         )
     owner = models.ForeignKey(
-        Owner, 
+        Owner,
         on_delete=models.SET_NULL,
         related_name='vehicles',
         null=True,
         blank=True
         )
-    
-    def __str__(self):
-        return f"Vehicle: {self.make} {self.model}, Plate: {self.plate}, Owner: {self.owner.name if self.owner else 'None'}"
-    
+
 
